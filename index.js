@@ -5,9 +5,22 @@ const server = express();
 server.use(express.json());
 
 const projects = [];
+let COUNT = 0;
 
-function CheckProjectsExists(req, res) {
-  const project = req.body;
+server.use((req, res, next) => {
+  COUNT += 1;
+  next();
+  console.log(`Requisições realizadas: ${COUNT}`);
+});
+
+function checkProjectId(req, res, next) {
+  const { id } = req.params;
+
+  if (!projects.find(p => p.id === id)) {
+    return res.status(400).json({ error: "User not exists!" });
+  }
+
+  return next();
 }
 
 server.get("/projects", (req, res) => {
@@ -15,23 +28,37 @@ server.get("/projects", (req, res) => {
 });
 
 server.post("/projects", (req, res) => {
-  const { id } = req.body;
-  const { title } = req.body;
+  const { id, title } = req.body;
 
   const project = {
     id,
     title,
     tasks: []
   };
-
   projects.push(project);
 
   return res.json(project);
 });
 
-server.put("/projects/:id", (req, res) => {
-  const { id } = req.params.id;
-  const { title } = req.body.title;
+server.put("/projects/:id", checkProjectId, (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+
+  const project = projects.find(p => p.id == id);
+
+  project.title = title;
+
+  return res.json(project);
+});
+
+server.delete("/projects/:id", checkProjectId, (req, res) => {
+  const { id } = req.params;
+
+  const project = projects.findIndex(p => p.id == id);
+
+  projects.splice(project, 1);
+
+  return res.json();
 });
 
 server.listen(3000);
